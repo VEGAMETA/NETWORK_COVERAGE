@@ -2,13 +2,10 @@
 
 
 ``` shell
-git pull https://github.com/VEGAMETA/NETWORK_COVERAGE.git
+git clone https://github.com/VEGAMETA/NETWORK_COVERAGE.git
 cd NETWORK_COVERAGE
 python -m venv venv
-venv/Scripts/Activate
+venv\Scripts\activate
 pip install -r requirements.txt
-```
-
-``` shell
 python ./main.py
 ```
