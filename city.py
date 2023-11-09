@@ -1,6 +1,10 @@
 import random
+from typing import Optional
+
 import matplotlib.pyplot as plt
 from tower import Tower
+
+random.seed(0)
 
 
 class GridBlockEnum:
@@ -15,9 +19,7 @@ class CityGrid:
     def __init__(self, n: int, m: int, obstructed_coverage: float = 0.5) -> None:
         self.n = n
         self.m = m
-        self.grid: list[GridBlockEnum] = [
-            [GridBlockEnum.EMPTY_UNCOVERED] * m for _ in range(n)
-        ]
+        self.grid: list = [[GridBlockEnum.EMPTY_UNCOVERED] * m for _ in range(n)]
         self.obstructed_coverage = obstructed_coverage
         self.place_obstructed_blocks()
         self.towers: list[Tower] = []
@@ -28,29 +30,53 @@ class CityGrid:
                 if random.random() < self.obstructed_coverage:
                     self.grid[i][j] = GridBlockEnum.OBSTRUCTED_UNCOVERED
 
-    def place_tower(self, x: int, y: int, coverage_range: int) -> None:
-        self.towers.append(Tower(x, y, coverage_range))
-        self.grid[y][x] = GridBlockEnum.TOWER
-        for i in range(max(0, x - coverage_range), min(x + coverage_range, self.m) + 1):
-            for j in range(
-                max(0, y - coverage_range), min(y + coverage_range, self.n) + 1
-            ):
-                try:
-                    if self.grid[j][i] == GridBlockEnum.OBSTRUCTED_UNCOVERED:
-                        self.grid[j][i] = GridBlockEnum.OBSTRUCTED_COVERED
-                    elif self.grid[j][i] == GridBlockEnum.EMPTY_UNCOVERED:
-                        self.grid[j][i] = GridBlockEnum.EMPTY_COVERED
-                except IndexError:
-                    pass
+    def place_tower(self, x: int = 0, y: int = 0, coverage_range: int = 0, tower: Optional[Tower] = None) -> None:
+        if tower:
+            self.towers.append(tower)
+            self.grid[tower.y][tower.x] = GridBlockEnum.TOWER
+        else:
+            self.towers.append(Tower(x, y, coverage_range))
+            self.grid[y][x] = GridBlockEnum.TOWER
 
-    def optimized_tower_placement(self, coverage_range):
-        for _ in range(self.n * self.m):
-            empty = 0
-            obstructed = 0
-            for i in range(self.n):
-                for j in range(self.m):
-                    if self.grid[i][j] == GridBlockEnum.EMPTY_UNCOVERED:
-                        self.place_tower(j, i, coverage_range)
+    def count_coverage(self):
+        for tower in self.towers:
+            for i in range(max(0, tower.x - tower.coverage_range), tower.x + tower.coverage_range + 1):
+                for j in range(max(0, tower.y - tower.coverage_range), tower.y + tower.coverage_range + 1):
+                    try:
+                        if self.grid[j][i] == GridBlockEnum.OBSTRUCTED_UNCOVERED:
+                            self.grid[j][i] = GridBlockEnum.OBSTRUCTED_COVERED
+                        elif self.grid[j][i] == GridBlockEnum.EMPTY_UNCOVERED:
+                            self.grid[j][i] = GridBlockEnum.EMPTY_COVERED
+                    except IndexError:
+                        pass
+
+    def clear_coverage(self):
+        for i in range(self.n):
+            for j in range(self.m):
+                if self.grid[i][j] is GridBlockEnum.OBSTRUCTED_COVERED:
+                    self.grid[i][j] = GridBlockEnum.OBSTRUCTED_UNCOVERED
+                if self.grid[i][j] is GridBlockEnum.EMPTY_COVERED:
+                    self.grid[i][j] = GridBlockEnum.EMPTY_UNCOVERED
+
+    def count_empty_uncovered(self):
+        return sum([line.count(GridBlockEnum.EMPTY_UNCOVERED) for line in self.grid])
+
+    def optimized_tower_placement(self):
+        towers_amount = len(self.towers) - 1
+        while towers_amount >= 0:
+            popped_tower = self.towers.pop(towers_amount)
+            self.grid[popped_tower.y][popped_tower.x] = GridBlockEnum.EMPTY_UNCOVERED
+            self.clear_coverage()
+            self.count_coverage()
+            if self.count_empty_uncovered() > 0:
+                self.place_tower(tower=popped_tower)
+            towers_amount -= 1
+
+    def fill_empty_spaces(self, coverage_range):
+        for i in range(self.n):
+            for j in range(self.m):
+                if self.grid[i][j] in (GridBlockEnum.EMPTY_UNCOVERED, GridBlockEnum.EMPTY_COVERED):
+                    self.place_tower(j, i, coverage_range)
 
     def find_reliable_path(self, start_x, start_y, end_x, end_y):
         ...
@@ -71,9 +97,9 @@ class CityGrid:
             plt.plot(tower.x, tower.y, "ro")
             plt.gca().add_patch(
                 plt.Rectangle(
-                    (tower.x - tower.coverage, tower.y - tower.coverage),
-                    2 * tower.coverage,
-                    2 * tower.coverage,
+                    (tower.x - tower.coverage_range, tower.y - tower.coverage_range),
+                    2 * tower.coverage_range,
+                    2 * tower.coverage_range,
                     fill=False,
                 )
             )
