@@ -4,8 +4,6 @@ from typing import Optional
 import matplotlib.pyplot as plt
 from tower import Tower
 
-random.seed(0)
-
 
 class GridBlockEnum:
     EMPTY_UNCOVERED = 0
@@ -16,13 +14,14 @@ class GridBlockEnum:
 
 
 class CityGrid:
-    def __init__(self, n: int, m: int, obstructed_coverage: float = 0.5) -> None:
+    def __init__(self, n: int, m: int, obstructed_coverage: float = 0.5, coverage_range: int = 2) -> None:
         self.n = n
         self.m = m
-        self.grid: list = [[GridBlockEnum.EMPTY_UNCOVERED] * m for _ in range(n)]
+        self.grid: list[list][GridBlockEnum] = [[GridBlockEnum.EMPTY_UNCOVERED] * m for _ in range(n)]
+        self.towers: list[Tower] = []
         self.obstructed_coverage = obstructed_coverage
         self.place_obstructed_blocks()
-        self.towers: list[Tower] = []
+        self.fill_empty_spaces(coverage_range)
 
     def place_obstructed_blocks(self) -> None:
         for i in range(self.n):
@@ -37,6 +36,12 @@ class CityGrid:
         else:
             self.towers.append(Tower(x, y, coverage_range))
             self.grid[y][x] = GridBlockEnum.TOWER
+
+    def fill_empty_spaces(self, coverage_range):
+        for i in range(self.n):
+            for j in range(self.m):
+                if self.grid[i][j] in (GridBlockEnum.EMPTY_UNCOVERED, GridBlockEnum.EMPTY_COVERED):
+                    self.place_tower(j, i, coverage_range)
 
     def count_coverage(self):
         for tower in self.towers:
@@ -72,19 +77,13 @@ class CityGrid:
                 self.place_tower(tower=popped_tower)
             towers_amount -= 1
 
-    def fill_empty_spaces(self, coverage_range):
-        for i in range(self.n):
-            for j in range(self.m):
-                if self.grid[i][j] in (GridBlockEnum.EMPTY_UNCOVERED, GridBlockEnum.EMPTY_COVERED):
-                    self.place_tower(j, i, coverage_range)
-
     def find_reliable_path(self, start_x, start_y, end_x, end_y):
         ...
 
     def visualize_coverage(self) -> None:
         plt.imshow(self.grid, cmap="viridis")
-        colorbar = plt.colorbar(ticks=[0, 1, 2, 3, 4])
-        colorbar.set_ticklabels(
+        color_bar = plt.colorbar(ticks=[0, 1, 2, 3, 4])
+        color_bar.set_ticklabels(
             [
                 "Empty Uncovered",
                 "Empty Covered",
