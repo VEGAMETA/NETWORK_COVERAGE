@@ -81,6 +81,7 @@ class CityGrid:
         ...
 
     def visualize_coverage(self) -> None:
+        self.count_coverage()
         plt.imshow(self.grid, cmap="viridis")
         color_bar = plt.colorbar(ticks=[0, 1, 2, 3, 4])
         color_bar.set_ticklabels(
